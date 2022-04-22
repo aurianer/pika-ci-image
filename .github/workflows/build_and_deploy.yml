@@ -14,9 +14,9 @@ on:
   pull_request:
 
 env:
-  base_version: 1
+  base_version: 2
   base_image_name: pika-ci-base
-  hip_version: 1
+  hip_version: 2
   hip_image_name: pika-ci-hip
 
 jobs:
