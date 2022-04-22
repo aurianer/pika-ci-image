@@ -12,11 +12,11 @@ on:
   push:
     branches: [ main ]
   pull_request:
+  fork:
 
 env:
-  base_version: 2
+  version: 3
   base_image_name: pika-ci-base
-  hip_version: 2
   hip_image_name: pika-ci-hip
 
 jobs:
@@ -36,40 +36,31 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       # Base image #
-      - name: Build base image
-        if: ${{ github.event != 'push' }}
+      # We need to load the base image so that it is available for the hip
+      # build and push step. The options push and load cannot be used
+      # simultaneously.
+      - name: Load base image
         uses: docker/build-push-action@v2
         with:
           context: .
           file: Dockerfile.base
-          push: false
-          tags: ${{ secrets.DOCKER_USER }}/${{ env.base_image_name }}:latest,${{ secrets.DOCKER_USER }}/${{ env.base_image_name }}:${{ env.base_version }}
-      # The deploy step is only triggered on push to main branch
+          tags: ${{ secrets.DOCKER_USER }}/${{ env.base_image_name }}:latest,${{ secrets.DOCKER_USER }}/${{ env.base_image_name }}:${{ env.version }}
+          load: true
+      # The deploy step is only triggered when the pull request is merged
       - name: Build and deploy base image
-        if: ${{ github.event == 'push' }}
         uses: docker/build-push-action@v2
         with:
           context: .
           file: Dockerfile.base
-          push: true
-          tags: ${{ secrets.DOCKER_USER }}/${{ env.base_image_name }}:latest,${{ secrets.DOCKER_USER }}/${{ env.base_image_name }}:${{ env.base_version }}
+          push: ${{ contains(github.ref, 'main') }}
+          tags: ${{ secrets.DOCKER_USER }}/${{ env.base_image_name }}:latest,${{ secrets.DOCKER_USER }}/${{ env.base_image_name }}:${{ env.version }}
       # HIP image #
-      - name: Build HIP image
-        if: ${{ github.event != 'push' }}
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: Dockerfile.hip
-          push: false
-          tags: ${{ secrets.DOCKER_USER }}/${{ env.hip_image_name }}:latest,${{ secrets.DOCKER_USER }}/${{ env.hip_image_name }}:${{ env.hip_version }}
-          build-args: BASE_IMAGE=${{ secrets.DOCKER_USER }}/${{ env.base_image_name }}:${{ env.base_version }}
-      # The deploy step is only triggered on push to main branch
+      # The deploy step is only triggered when the pull request is merged
       - name: Build and deploy HIP image
-        if: ${{ github.event == 'push' }}
         uses: docker/build-push-action@v2
         with:
           context: .
           file: Dockerfile.hip
-          push: true
-          tags: ${{ secrets.DOCKER_USER }}/${{ env.hip_image_name }}:latest,${{ secrets.DOCKER_USER }}/${{ env.hip_image_name }}:${{ env.hip_version }}
-          build-args: BASE_IMAGE=${{ secrets.DOCKER_USER }}/${{ env.base_image_name }}:${{ env.base_version }}
+          push: ${{ contains(github.ref, 'main') }}
+          tags: ${{ secrets.DOCKER_USER }}/${{ env.hip_image_name }}:latest,${{ secrets.DOCKER_USER }}/${{ env.hip_image_name }}:${{ env.version }}
+          build-args: BASE_IMAGE=${{ secrets.DOCKER_USER }}/${{ env.base_image_name }}:${{ env.version }}
