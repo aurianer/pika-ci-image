@@ -32,9 +32,10 @@ jobs:
       - name: Construct boolean for merging
         uses: haya14busa/action-cond@v1
         id: is_merged
-        cond: ${{ github.event.pull_request.merged == 'true' }}
-        if_true: 'true'
-        if_false: 'false'
+        with:
+          cond: ${{ github.event.pull_request.merged == 'true' }}
+          if_true: 'true'
+          if_false: 'false'
       - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
